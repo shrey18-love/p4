@@ -4,6 +4,9 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { CloudShader } from "@/components/ui/cloud-shader";
 import GlassSurface from "@/components/GlassSurface.jsx";
 import GooeyNav from "@/components/GooeyNav.jsx";
+import FootwearShowcase from "@/components/FootwearShowcase";
+import HairShowcase from "@/components/HairShowcase";
+import NailShowcase from "@/components/NailShowcase";
 
 const items = [
   { label: "Home", href: "#home" },
@@ -11,7 +14,7 @@ const items = [
   { label: "Accessories", href: "#accessories" },
   { label: "Nail Paint", href: "#nail-paint" },
   { label: "Dress", href: "#dress" },
-  { label: "Shoes", href: "#shoes" },
+  { label: "Footwear", href: "#shoes" },
   { label: "Hairstyle", href: "#hairstyle" },
 ];
 
@@ -351,34 +354,13 @@ export function CloudShaderDemo() {
         />
       )}
 
-      {activeNavIndex === 3 && (
-        <PlaceholderSection
-          id="nail-paint"
-          eyebrow="NAIL ART & COLORS"
-          title={<>Ofcourse<br />It Is Nail Paint 💅</>}
-          subtitle="Matching every outfit with vibrant shades."
-        />
-      )}
+      {activeNavIndex === 3 && <NailShowcase />}
 
       {activeNavIndex === 4 && <DressWardrobe />}
 
-      {activeNavIndex === 5 && (
-        <PlaceholderSection
-          id="shoes"
-          eyebrow="FOOTWEAR COLLECTION"
-          title={<>Ofcourse<br />It Is Shoes 👠</>}
-          subtitle="Stepping out in comfort and high style."
-        />
-      )}
+      {activeNavIndex === 5 && <FootwearShowcase />}
 
-      {activeNavIndex === 6 && (
-        <PlaceholderSection
-          id="hairstyle"
-          eyebrow="HAIR STYLING"
-          title={<>Ofcourse<br />It Is Hairstyle 💇‍♀️</>}
-          subtitle="Effortlessly stunning looks for every occasion."
-        />
-      )}
+      {activeNavIndex === 6 && <HairShowcase />}
     </main>
   );
 }
