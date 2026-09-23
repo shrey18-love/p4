@@ -252,24 +252,6 @@ function FrameScrollSequence({ id, frameDirectory, frameCount, title, hint, them
   );
 }
 
-type PlaceholderSectionProps = {
-  id: string;
-  eyebrow: string;
-  title: ReactNode;
-  subtitle: string;
-};
-
-function PlaceholderSection({ id, eyebrow, title, subtitle }: PlaceholderSectionProps) {
-  return (
-    <section id={id} className="placeholder-room">
-      <div className="placeholder-room__content">
-        <span className="placeholder-room__eyebrow">{eyebrow}</span>
-        <h2>{title}</h2>
-        <p className="placeholder-room__subtitle">{subtitle}</p>
-      </div>
-    </section>
-  );
-}
 
 export function CloudShaderDemo() {
   const [activeNavIndex, setActiveNavIndex] = useState(0);

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 const hair1 = new URL("../assets/hairs/hair1.jpg", import.meta.url).href;
 const hair2 = new URL("../assets/hairs/hair2.jpg", import.meta.url).href;
