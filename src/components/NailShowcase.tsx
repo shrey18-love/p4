@@ -1,8 +1,8 @@
 import { useState } from "react";
 
 const nail1 = new URL("../assets/nails/nail1.jpg", import.meta.url).href;
-const nail2 = new URL("../assets/nails/nail2.webp", import.meta.url).href;
-const nail3 = new URL("../assets/nails/nail3.avif", import.meta.url).href;
+const nail2 = new URL("../assets/nails/nail2.jpg", import.meta.url).href;
+const nail3 = new URL("../assets/nails/nail3.jpg", import.meta.url).href;
 const nail4 = new URL("../assets/nails/nail4.jpg", import.meta.url).href;
 
 interface NailPhoto {
