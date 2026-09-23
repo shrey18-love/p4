@@ -160,45 +160,96 @@ function FrameScrollSequence({ id, frameDirectory, frameCount, title, hint, them
     const frames = new Map<number, HTMLImageElement>();
     let requestedFrame = 0;
     let renderedFrame = -1;
-
     let isVisible = false;
+
     const frameUrl = (index: number) => `/${frameDirectory}/ezgif-frame-${String(index + 1).padStart(3, "0")}.jpg`;
+
     const resizeCanvas = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
       canvas.width = Math.floor(window.innerWidth * dpr);
       canvas.height = Math.floor(window.innerHeight * dpr);
       context.imageSmoothingEnabled = true;
       context.imageSmoothingQuality = "medium";
-      drawFrame(renderedFrame < 0 ? 0 : renderedFrame);
+      drawFrame(requestedFrame);
     };
+
+    // Find nearest loaded frame so canvas NEVER stalls or flashes black
+    const getBestAvailableImage = (target: number): { image: HTMLImageElement; index: number } | null => {
+      if (frames.has(target)) {
+        const img = frames.get(target);
+        if (img && img.complete && img.naturalWidth > 0) return { image: img, index: target };
+      }
+      for (let distance = 1; distance < frameCount; distance++) {
+        const prev = target - distance;
+        const next = target + distance;
+        if (prev >= 0 && frames.has(prev)) {
+          const img = frames.get(prev);
+          if (img && img.complete && img.naturalWidth > 0) return { image: img, index: prev };
+        }
+        if (next < frameCount && frames.has(next)) {
+          const img = frames.get(next);
+          if (img && img.complete && img.naturalWidth > 0) return { image: img, index: next };
+        }
+        if (prev < 0 && next >= frameCount) break;
+      }
+      return null;
+    };
+
     const drawFrame = (index: number) => {
-      const image = frames.get(index);
-      if (!image?.complete || !image.naturalWidth) return;
+      const result = getBestAvailableImage(index);
+      if (!result) return;
+      const { image, index: bestIndex } = result;
       const scale = Math.max(canvas.width / image.naturalWidth, canvas.height / image.naturalHeight);
       const width = image.naturalWidth * scale;
       const height = image.naturalHeight * scale;
       context.fillStyle = "#1b0532";
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.drawImage(image, (canvas.width - width) / 2, (canvas.height - height) / 2, width, height);
-      renderedFrame = index;
+      renderedFrame = bestIndex;
     };
+
     const loadFrame = (index: number) => {
       if (index < 0 || index >= frameCount || frames.has(index)) return;
       const image = new Image();
       image.decoding = "async";
-      image.onload = () => { if (index === requestedFrame || renderedFrame < 0) drawFrame(index); };
-      image.src = frameUrl(index);
       frames.set(index, image);
-    };
-    const queueFrames = (index: number) => {
-      for (let offset = -4; offset <= 14; offset += 1) loadFrame(index + offset);
-      if (frames.size > 28) {
-        for (const [key, image] of frames) {
-          if (Math.abs(key - index) > 12) { image.src = ""; frames.delete(key); }
-          if (frames.size <= 24) break;
+
+      image.onload = () => {
+        if ("decode" in image) {
+          image.decode().then(() => {
+            if (Math.abs(requestedFrame - index) <= 4 || renderedFrame < 0) {
+              drawFrame(requestedFrame);
+            }
+          }).catch(() => {
+            if (Math.abs(requestedFrame - index) <= 4 || renderedFrame < 0) {
+              drawFrame(requestedFrame);
+            }
+          });
+        } else {
+          if (Math.abs(requestedFrame - index) <= 4 || renderedFrame < 0) {
+            drawFrame(requestedFrame);
+          }
         }
+      };
+      image.src = frameUrl(index);
+    };
+
+    const queueFrames = (index: number) => {
+      // Load current frame & immediate neighbors first
+      loadFrame(index);
+      for (let offset = 1; offset <= 10; offset++) {
+        loadFrame(index + offset);
+        loadFrame(index - offset);
       }
     };
+
+    const preloadKeyframes = () => {
+      // Preload keyframes every 3 frames for instant scroll coverage across the entire section
+      for (let i = 0; i < frameCount; i += 3) {
+        loadFrame(i);
+      }
+    };
+
     const update = () => {
       animationFrame = 0;
       if (!isVisible) return;
@@ -209,11 +260,14 @@ function FrameScrollSequence({ id, frameDirectory, frameCount, title, hint, them
       const travel = Math.max(section.offsetHeight - window.innerHeight, 1);
       const progress = Math.min(1, Math.max(0, -rect.top / travel));
       requestedFrame = Math.min(frameCount - 1, Math.floor(progress * (frameCount - 1)));
+
       queueFrames(requestedFrame);
       drawFrame(requestedFrame);
+
       title.style.opacity = `${Math.max(0, 1 - progress * 3.8)}`;
-      title.style.transform = `translate(-50%, calc(-50% - ${progress * 32}px)) scale(${1 - progress * .08})`;
+      title.style.transform = `translate(-50%, calc(-50% - ${progress * 32}px)) scale(${1 - progress * 0.08})`;
     };
+
     const requestUpdate = () => {
       if (isVisible && !animationFrame) animationFrame = window.requestAnimationFrame(update);
     };
@@ -221,24 +275,28 @@ function FrameScrollSequence({ id, frameDirectory, frameCount, title, hint, them
     const observer = new IntersectionObserver(
       ([entry]) => {
         isVisible = entry.isIntersecting;
-        if (isVisible) requestUpdate();
+        if (isVisible) {
+          preloadKeyframes();
+          requestUpdate();
+        }
       },
-      { rootMargin: "200px 0px 200px 0px" }
+      { rootMargin: "300px 0px 300px 0px" }
     );
     if (sectionRef.current) observer.observe(sectionRef.current);
 
     window.addEventListener("scroll", requestUpdate, { passive: true });
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
+    preloadKeyframes();
     requestUpdate();
+
     return () => {
       observer.disconnect();
       window.removeEventListener("scroll", requestUpdate);
       window.removeEventListener("resize", resizeCanvas);
-      window.cancelAnimationFrame(animationFrame);
-      frames.forEach(image => { image.src = ""; });
+      if (animationFrame) window.cancelAnimationFrame(animationFrame);
     };
-  }, []);
+  }, [frameCount, frameDirectory]);
 
   return (
     <section id={id} className={`chocolate-video ${themeClass}`} ref={sectionRef}>
